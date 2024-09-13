@@ -1,21 +1,75 @@
-import React, {useState} from 'react'
+import React, { useState } from 'react'
 import gql from 'graphql-tag'
 import { useQuery, useMutation } from '@apollo/react-hooks'
 import PetsList from '../components/PetsList'
 import NewPetModal from '../components/NewPetModal'
 import Loader from '../components/Loader'
 
+const ALL_PETS = gql`
+  {
+    pets {
+      id
+      img
+      name
+      type
+    }
+  }
+`;
 
-export default function Pets () {
+const NEW_PET = gql`
+  mutation CreateAPet($newPet: NewPetInput!){
+    addPet(input : $newPet){
+      id
+      img
+      name
+      type
+    }
+  }
+`;
+
+export default function Pets() {
   const [modal, setModal] = useState(false)
+  const {data, loading, error} = useQuery(ALL_PETS)
+  const [createPet, newPet] = useMutation(NEW_PET,{
+    update(cache, {data: {addPet}}){
+      const data = cache.readQuery({query: ALL_PETS})
+      cache.writeQuery({
+        query: ALL_PETS,
+        data: {pets: [addPet, ...data.pets ]}
+      })
+    }
+  })
 
 
   const onSubmit = input => {
     setModal(false)
+    console.log(input)
+    createPet({
+      variables: {newPet: input},
+      optimisticResponse :{
+        __typename:'Mutation',
+        addPet:{ 
+          __typename:'Pet',
+          id:Math.floor(Math.random()*10000) + '',
+          name: input.name,
+          type: input.type,
+          img: 'https://via.placeholder.com/300'
+        }
+      }
+    })
   }
-  
+
   if (modal) {
     return <NewPetModal onSubmit={onSubmit} onCancel={() => setModal(false)} />
+  }
+  
+
+  if(loading){
+    return <Loader/>
+  }
+
+  if(error || newPet.error){
+    <p>Error!</p>
   }
 
   return (
@@ -32,7 +86,7 @@ export default function Pets () {
         </div>
       </section>
       <section>
-        <PetsList />
+      <PetsList pets={data && data.pets ? data.pets : []} />
       </section>
     </div>
   )

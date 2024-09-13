@@ -1,1 +1,10 @@
-{}
+{
+    "pet" :[
+        {
+            "id": "6789",
+            "type": "DOG",
+            "name": "Snoopy",
+            "createdAt" : "34567"
+        }
+    ]
+}
